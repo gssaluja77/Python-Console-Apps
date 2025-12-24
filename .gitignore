@@ -1,5 +1,4 @@
 .DS_Store
-bank_data.json
 __pycache__
 dist
 build

@@ -13,14 +13,27 @@ from getpass import getpass
 
 console = Console()
 
-if getattr(sys, "frozen", False):
-    base_dir = os.path.dirname(sys.executable)
-else:
-    base_dir = os.path.dirname(os.path.abspath(__file__))
+
+def get_data_file_path(file_name="bank_data.json"):
+    env_path = os.environ.get("BANKING_DATA_PATH")
+    if env_path:
+        return env_path
+
+    home_dir = os.path.expanduser("~")
+    app_dir = os.path.join(home_dir, ".banking_app")
+
+    if not os.path.exists(app_dir):
+        try:
+            os.makedirs(app_dir)
+        except OSError as e:
+            console.print(f"[red3]Warning: Could not create {app_dir}: {e}[/red3]")
+            return os.path.join(os.path.dirname(os.path.abspath(__file__)), file_name)
+
+    return os.path.join(app_dir, file_name)
 
 
 def load_existing_bank_data(file_name="bank_data.json"):
-    full_path = os.path.join(base_dir, file_name)
+    full_path = get_data_file_path(file_name)
 
     if not os.path.exists(full_path):
         try:
@@ -46,7 +59,7 @@ def load_existing_bank_data(file_name="bank_data.json"):
 
 
 def save_bank_data(account_objects, file_name="bank_data.json"):
-    full_path = os.path.join(base_dir, file_name)
+    full_path = get_data_file_path(file_name)
     serializable_data = {
         acc_num: account.account_to_dict()
         for acc_num, account in account_objects.items()
@@ -201,11 +214,11 @@ def register():
     while True:
         password = getpass("Enter your password: ")
         if password == "":
-            console.print("[red3]❌ Password cannot be empty![/red]")
+            console.print("[red3]❌ Password cannot be empty![/red3]")
             continue
         confirm_password = getpass("Confirm your password: ")
         if password != confirm_password:
-            console.print("[red3]❌ Passwords do not match![/red]")
+            console.print("[red3]❌ Passwords do not match![/red3]")
             continue
         break
 
