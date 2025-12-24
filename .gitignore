@@ -1,0 +1,10 @@
+.DS_Store
+bank_data.json
+__pycache__
+dist
+build
+banking_app.spec
+coffee_app.spec
+file_organizer.spec
+vocab_quest.spec
+extras
