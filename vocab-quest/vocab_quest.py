@@ -24,12 +24,12 @@ styles = {
 
 def display_title():
     """Display beautiful title banner"""
-    title = Text("🎓 VOCAB QUEST 🎓", style="bold purple4")
-    subtitle = Text("Master Your Vocabulary!", style="italic blue3")
+    title = "🎓 VOCAB QUEST 🎓"
+    subtitle = "Master Your Vocabulary!"
 
     title_panel = Panel(
-        Align.center(f"{title}\n{subtitle}"),
-        border_style="blue3",
+        Align.center(f"[bold]{title}[/bold]\n{subtitle}"),
+        border_style="purple4",
         box=box.DOUBLE,
         padding=(1, 2),
     )
@@ -95,7 +95,7 @@ def display_hint(hint):
         title="[bold purple4]Hint[/bold purple4]",
         border_style="dark_orange",
         box=box.ROUNDED,
-        padding=(1, 2),
+        padding=(1, 0),
     )
     console.print(hint_panel)
 
