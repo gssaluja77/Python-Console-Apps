@@ -1,7 +1,10 @@
 # Banking Application with Rich TUI
 
+# transaction history deleted after logging out, check money transfer in transaction history
+
+from _operator import truediv
 from uuid import uuid4
-import os, sys, json, bcrypt
+import os, json, bcrypt
 from rich.console import Console
 from rich.panel import Panel
 from rich.table import Table
@@ -61,11 +64,23 @@ def load_existing_bank_data(file_name="bank_data.json"):
 def save_bank_data(account_objects, file_name="bank_data.json"):
     full_path = get_data_file_path(file_name)
     serializable_data = {
-        acc_num: account.account_to_dict()
-        for acc_num, account in account_objects.items()
+        account_number: account.account_to_dict()
+        for account_number, account in account_objects.items()
     }
     with open(full_path, "w") as f:
         json.dump(serializable_data, f)
+
+
+def run_script():
+    accounts = load_existing_bank_data()
+    if accounts:
+        for account_number in accounts:
+            if "transaction_history" not in accounts[account_number]:
+                accounts[account_number]["transaction_history"] = []
+
+        full_path = get_data_file_path("bank_data.json")
+        with open(full_path, "w") as f:
+            json.dump(accounts, f)
 
 
 def validate_amount(amount):
@@ -83,11 +98,14 @@ def validate_amount(amount):
 
 
 class Account:
-    def __init__(self, name, account_number, password, balance=0.0):
+    def __init__(
+        self, name, account_number, password, balance=0.0, transaction_history=[]
+    ):
         self.name = name
         self.account_number = account_number
         self.password = password
         self.balance = balance
+        self.transaction_history = transaction_history
 
     def account_to_dict(self):
         return {
@@ -95,15 +113,17 @@ class Account:
             "account_number": self.account_number,
             "password": self.password,
             "balance": self.balance,
+            "transaction_history": self.transaction_history,
         }
 
     @classmethod
-    def from_dict_to_account(cls, data):
+    def dict_to_account(cls, data):
         return cls(
             name=data["name"],
             account_number=data["account_number"],
             password=data["password"],
             balance=data["balance"],
+            transaction_history=data["transaction_history"],
         )
 
 
@@ -111,8 +131,8 @@ class Bank:
     def __init__(self):
         bank_raw_data = load_existing_bank_data()
         self.accounts = {
-            acc_num: Account.from_dict_to_account(acc_data)
-            for acc_num, acc_data in bank_raw_data.items()
+            account_number: Account.dict_to_account(acc_data)
+            for account_number, acc_data in bank_raw_data.items()
         }
 
     def create_account(self, name, password, balance=0.0):
@@ -145,6 +165,9 @@ class Bank:
             return
         amount = float(amount)
         self.accounts[account_number].balance += amount
+        self.record_transaction_history(
+            account_number, transaction_type="deposit", amount=amount, src="To Self"
+        )
         console.print(f"[green4]✅ ${amount:.2f} deposited successfully![/green4]")
 
     def withdraw(self, account_number, amount):
@@ -153,6 +176,12 @@ class Bank:
         amount = float(amount)
         if self.accounts[account_number].balance - amount > 0:
             self.accounts[account_number].balance -= amount
+            self.record_transaction_history(
+                account_number,
+                transaction_type="withdraw",
+                amount=amount,
+                src="From Self",
+            )
             console.print(f"[green4]✅ ${amount:.2f} withdrawn successfully![/green4]")
         else:
             console.print("[red3]❌ Insufficient funds![/red]")
@@ -167,26 +196,63 @@ class Bank:
             )
             console.print(balance_panel)
 
-    def transfer_money(self, from_acc_num, to_acc_num, amount):
-        if from_acc_num == to_acc_num:
+    def transfer_money(self, from_account_number, to_account_number, amount):
+        if from_account_number == to_account_number:
             console.print("[red3]❌ You can't transfer money to yourself![/red]")
             return
         if not validate_amount(amount):
             return
         amount = float(amount)
-        if to_acc_num in self.accounts:
-            from_acc = self.accounts[from_acc_num]
-            to_acc = self.accounts[to_acc_num]
+        if to_account_number in self.accounts:
+            from_acc = self.accounts[from_account_number]
+            to_acc = self.accounts[to_account_number]
             if from_acc.balance - amount >= 0:
                 from_acc.balance -= amount
                 to_acc.balance += amount
+                self.record_transaction_history(
+                    from_account_number,
+                    transaction_type="transfer",
+                    amount=amount,
+                    src=f"To {to_acc.name}",
+                )
+                self.record_transaction_history(
+                    to_account_number,
+                    transaction_type="transfer",
+                    amount=amount,
+                    src=f"From {from_acc.name}",
+                )
                 console.print(
-                    f"[green4]✅ ${amount:.2f} transferred successfully to {self.accounts[to_acc_num].name}![/green4]"
+                    f"[green4]✅ ${amount:.2f} transferred successfully to {self.accounts[to_account_number].name}![/green4]"
                 )
             else:
                 console.print("[red3]❌ You don't have enough funds to transfer![/red]")
         else:
-            console.print("[red3]❌ The receiver's account doesn't exist![/red]")
+            console.print("[red3]❌ The receiver's account doesn't exist![/red3]")
+
+    def record_transaction_history(self, account_number, transaction_type, amount, src):
+        if account_number in self.accounts:
+            history_item = f"{transaction_type.capitalize()}|{amount}|{src}"
+            self.accounts[account_number].transaction_history.append(history_item)
+
+    def get_transaction_history(self, account_number):
+        if account_number in self.accounts:
+            if not self.accounts[account_number].transaction_history:
+                console.print("[red3] No Transactions yet![/red3]")
+                return
+            transaction_history = self.accounts[account_number].transaction_history
+
+            history_table = Table(
+                title="[bold blue3]💳 Your Transaction History[/bold blue3]",
+                box=box.ROUNDED,
+                border_style="blue3",
+            )
+            history_table.add_column("Type")
+            history_table.add_column("Amount")
+            history_table.add_column("Src/Dest")
+            for history_item in list(reversed(transaction_history)):
+                transaction_type, amount, src = history_item.split("|")
+                history_table.add_row(transaction_type, f"${amount}", src)
+            console.print(history_table)
 
 
 bank = Bank()
@@ -249,7 +315,8 @@ def private(account_number):
         menu_table.add_row("2️⃣  Withdraw Money")
         menu_table.add_row("3️⃣  Transfer Money")
         menu_table.add_row("4️⃣  Check Balance")
-        menu_table.add_row("5️⃣  Logout")
+        menu_table.add_row("5️⃣  Transaction History")
+        menu_table.add_row("6️⃣  Logout")
         console.print(menu_table)
         console.print()
 
@@ -278,6 +345,10 @@ def private(account_number):
             bank.get_current_balance(account_number)
 
         elif choice == "5":
+            console.print()
+            bank.get_transaction_history(account_number)
+
+        elif choice == "6":
             save_bank_data(bank.accounts)
             goodbye_panel = Panel(
                 "[green4]👋 Thanks for visiting![/green4]",
@@ -313,7 +384,7 @@ def main():
         main_menu.add_column(style="dark_orange", justify="left")
         main_menu.add_row("1️⃣  Login to your account")
         main_menu.add_row("2️⃣  Register for a new account")
-        main_menu.add_row("3️⃣  Exit")
+        main_menu.add_row("3️⃣  Exit application")
         console.print(main_menu)
         console.print()
 
@@ -344,8 +415,8 @@ def main():
 
         elif choice == "3":
             goodbye_panel = Panel(
-                "[dark_orange]👋 Have a nice day![/dark_orange]",
-                border_style="dark_orange",
+                "[green4]👋 Have a nice day![/green4]",
+                border_style="green4",
                 box=box.ROUNDED,
             )
             console.print(goodbye_panel)
