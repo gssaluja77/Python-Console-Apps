@@ -198,7 +198,7 @@ def main():
 
         elif inp == str(menu_len + 4):
             goodbye_panel = Panel(
-                "[dark_orange]👋 Goodbye! Enjoy your coffee! ☕️[/dark_orange]",
+                "[dark_orange]👋 Goodbye! Please visit again! 😊[/dark_orange]",
                 border_style="dark_orange",
                 box=box.ROUNDED,
             )
@@ -217,7 +217,7 @@ if __name__ == "__main__":
         console.print()
         console.print()
         goodbye_panel = Panel(
-            "[dark_orange]👋 Goodbye! Enjoy your coffee! ☕️[/dark_orange]",
+            "[dark_orange]👋 Goodbye! Please visit again! 😊[/dark_orange]",
             border_style="dark_orange",
             box=box.ROUNDED,
         )
