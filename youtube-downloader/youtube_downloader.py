@@ -43,7 +43,7 @@ def download_single_video(video_url):
     ydl_opts = {
         "format": "bestvideo+bestaudio/best",
         "merge_output_format": "mp4",
-        "outtmpl": os.path.join(app_dir, "Videos/%(title)s.%(ext)s"),
+        "outtmpl": os.path.join(app_dir, "YT_Videos/%(title)s.%(ext)s"),
         "noplaylist": True,
         "quiet": False,
         "no_warnings": False,
