@@ -7,3 +7,4 @@ coffee_app.spec
 file_organizer.spec
 vocab_quest.spec
 extras
+.venv
