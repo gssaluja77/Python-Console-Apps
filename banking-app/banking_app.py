@@ -2,7 +2,6 @@
 
 # transaction history deleted after logging out, check money transfer in transaction history
 
-from _operator import truediv
 from uuid import uuid4
 import os, json, bcrypt
 from rich.console import Console
